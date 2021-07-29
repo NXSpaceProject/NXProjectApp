@@ -5,6 +5,9 @@ import {PermissionsAndroid} from 'react-native';
 import base64 from "react-native-base64";
 import {BleManager} from 'react-native-ble-plx';
 
+const DISCONNECTED = "Disconnected";
+const DISCONNECTED_DESCRIPTION = "DESCRIPTION_DISCONNECTED";
+
 class Bluetooth extends Component {
     /**
      * constructor
@@ -124,8 +127,10 @@ class Bluetooth extends Component {
         this.bleManager.cancelDeviceConnection(this.state.device.id).then(() => {
             this.setState({
                 connected: false,
-                rocketState: "Disconnected",
-                rocketStateDescription: "DESCRIPTION_DISCONNECTED"
+                state: DISCONNECTED,
+                stateDescription: DISCONNECTED_DESCRIPTION,
+                rocketState: DISCONNECTED,
+                rocketStateDescription: DISCONNECTED_DESCRIPTION
             });
         });
     }
