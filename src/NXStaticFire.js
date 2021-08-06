@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-unused-vars
 import React, {Component} from 'react';
 import {
-    Button, Avatar, Card, IconButton, Title,
+    Button, Avatar, Card, IconButton, Title, Subheading,
     Paragraph, Badge, Dialog, Portal, Divider
 } from 'react-native-paper';
 import {Dimensions, View, Text, StyleSheet} from 'react-native';
@@ -12,8 +12,10 @@ import {
     LineChart
 } from "react-native-chart-kit";
 
+import NXStaticFireSettings from './components/NXStaticFireSettings';
+
 const STATE_CHECKING_SYSTEMS = 0;
-const STATE_GROUND_IDLE = 1;
+const STATE_READY = 1;
 const STATE_CHECK_ENGINE_START = 2;
 const STATE_STARTUP = 3;
 const STATE_CHECKING_FIRE_TEST_STARTED = 4;
@@ -63,6 +65,10 @@ class NXStaticFire extends Bluetooth {
      */
     constructor(props) {
         super(props);
+
+        this.updateSetting = this.updateSetting.bind(this);
+        this.saveSettings = this.saveSettings.bind(this);
+
         this.state = {
             ...this.state,
             stateNumber: 0,
@@ -76,7 +82,9 @@ class NXStaticFire extends Bluetooth {
             confirmationMessage: false,
             maxThrust: 0,
             cellValue: 0,
-            rebootConfirmationMessage: false
+            rebootConfirmationMessage: false,
+            confirmationAbortMessage: false,
+            fireLightStartThreshold: 0
         };
     }
 
@@ -155,20 +163,26 @@ class NXStaticFire extends Bluetooth {
      * Show confirmation dialog before start static fire test
      */
     async showConfirmationDialog() {
-        let cellValue = await this.checkCellValue();
-        if (cellValue > this.MINIMUM_CELL_SAFETY_VALUES && cellValue < this.MAXIMUM_CELL_SAFETY_VALUES) {
+        if (this.isConnectedAndTestRunning() || this.isConnectedAndCheckingTest()) {
             this.setState({
-                confirmationMessage: true,
-                state: this.states[STATE_GROUND_IDLE],
-                stateDescription: this.statesDescription[STATE_GROUND_IDLE],
-                stateNumber: STATE_GROUND_IDLE
+                confirmationAbortMessage: true
             });
-        } else {
-            this.setState({
-                state: this.states[STATE_CELL_VALUE_INCORRECT],
-                stateDescription: this.statesDescription[STATE_CELL_VALUE_INCORRECT],
-                stateNumber: STATE_CELL_VALUE_INCORRECT}
-            );
+        } else if (this.state.connected) {
+            let cellValue = await this.checkCellValue();
+            if (cellValue > this.MINIMUM_CELL_SAFETY_VALUES && cellValue < this.MAXIMUM_CELL_SAFETY_VALUES) {
+                this.setState({
+                    confirmationMessage: true,
+                    state: this.states[STATE_READY],
+                    stateDescription: this.statesDescription[STATE_READY],
+                    stateNumber: STATE_READY
+                });
+            } else {
+                this.setState({
+                    state: this.states[STATE_CELL_VALUE_INCORRECT],
+                    stateDescription: this.statesDescription[STATE_CELL_VALUE_INCORRECT],
+                    stateNumber: STATE_CELL_VALUE_INCORRECT}
+                );
+            }
         }
     }
 
@@ -190,24 +204,44 @@ class NXStaticFire extends Bluetooth {
      */
     confirm() {
         let sendState = (this.state.stateNumber === STATE_FIRE_TEST_STARTED) ? STATE_ABORT : STATE_STARTUP;
-        this.wwor.writeWithoutResponse(base64.encode("NX+SS=" + sendState)).then((response) => {
+        this.wwor.writeWithoutResponse(base64.encode("NX+SS=" + sendState + "\n")).then((response) => {
             console.log("NX+SS=" + sendState)
             this.setState({confirmationMessage: false});
         });
     }
 
+    /**
+     * Hide Dialog
+     */
     hideDialog() {
         this.setState({
             confirmationMessage: false,
-            state: this.states[STATE_GROUND_IDLE],
-            stateDescription: this.statesDescription[STATE_GROUND_IDLE],
-            stateNumber: STATE_GROUND_IDLE
+            state: this.states[STATE_READY],
+            stateDescription: this.statesDescription[STATE_READY],
+            stateNumber: STATE_READY
         });
     }
 
-
+    /**
+     * Hide Reboot Confirmation Dialog
+     */
     hideRebootConfirmationDialog() {
         this.setState({rebootConfirmationMessage: false});
+    }
+
+    /**
+     * Confirm Abort
+     */
+    confirmAbort() {
+        this.wwor.writeWithoutResponse(base64.encode("NX+SS=" + STATE_ABORT + "\n")).then((response) => {
+            this.setState({confirmationAbortMessage: false});
+        });
+    }
+    /**
+     * Hide Abort Confirmation Dialog
+     */
+    hideAbortConfirmationDialog() {
+        this.setState({confirmationAbortMessage: false})
     }
 
     /**
@@ -233,14 +267,14 @@ class NXStaticFire extends Bluetooth {
      * @returns {Promise<Characteristic>}
      */
     sendNXState(sendState) {
-        return this.wwor.writeWithoutResponse(base64.encode("NX+SS=" + sendState));
+        return this.wwor.writeWithoutResponse(base64.encode("NX+SS=" + sendState + "\n"));
     }
 
     /**
      * Get current cell value
      */
     getCellValue() {
-        this.wwor.writeWithoutResponse(base64.encode("NX+CELL")).then((response) => {
+        this.wwor.writeWithoutResponse(base64.encode("NX+CEL\n")).then((response) => {
             console.log("NX+CELL");
         });
     }
@@ -249,6 +283,50 @@ class NXStaticFire extends Bluetooth {
         console.log('isready', this.state.connected, this.state.stateNumber)
         return this.state.connected === true && this.state.stateNumber == 1;
     }
+
+    isConnectedAndTestRunning() {
+        return this.state.connected === true && this.state.stateNumber === STATE_FIRE_TEST_STARTED;
+    }
+
+    isConnectedAndCheckingTest() {
+        return this.state.connected === true && this.state.stateNumber === STATE_CHECKING_FIRE_TEST_STARTED;
+    }
+
+    updateSetting(value) {
+        this.setState(
+            value
+        );
+    }
+    saveSettings() {
+        this.wwor.writeWithoutResponse(base64.encode("NX+LT=" + this.state.fireLightStartThreshold + "\n")).then((response) => {
+
+        });
+    }
+
+    buttonStartTestStyle() {
+        if (this.isConnectedAndTestRunning() || this.state.stateNumber ===  STATE_CHECKING_FIRE_TEST_STARTED) {
+            return style.buttonAbort;
+          // return style.buttonConnected : style.buttonDisconnected
+        } else if (this.state.connected === true) {
+            return style.buttonConnected;
+        }
+    }
+    buttonFireStaticMessages(t) {
+        if (this.state.stateNumber === STATE_FIRE_TEST_STARTED || this.state.stateNumber ===  STATE_CHECKING_FIRE_TEST_STARTED) {
+            return t("ABORT");
+        }
+        return t("Start Test");
+     //   stateNumber === STATE_FIRE_TEST_STARTED ? t("ABORT") : t("Start Test")
+    }
+
+
+             /*   <View>
+                    <NXStaticFireSettings
+                        updateSetting={this.updateSetting}
+                        saveSettings={this.saveSettings}
+                    />
+                </View>*/
+
 
     /**
      * Render
@@ -265,12 +343,13 @@ class NXStaticFire extends Bluetooth {
             stateNumber,
             confirmationMessage,
             rebootConfirmationMessage,
+            confirmationAbortMessage,
             maxThrust,
             cellValue,
+            fireLightStartThreshold
         } = this.state;
         const {t} = this.props;
 
-        console.log('State ', stateNumber);
         return (
             <View style={style.container}>
                 <View style={style.row}>
@@ -288,16 +367,11 @@ class NXStaticFire extends Bluetooth {
                         {connected ? t("Reboot") : t("Disconnected")}
                     </Button>
                 </View>
-                <View style={style.row}>
-                    <Card.Title
-                        title={t("State") + ": " + t(state)}
-                        subtitle={t(stateDescription)}
-                        subtitleNumberOfLines={2}
-                        left={(props) => <IconState props={props} stateNumber={stateNumber}/>}
-                        right={(props) => <IconButton {...props} icon="folder" onPress={() => {
-                        }}/>}
-                    />
-                </View>
+                <StaticFireStates
+                    state={state}
+                    stateNumber={stateNumber}
+                    stateDescription={stateDescription}
+                    t={t}/>
                 <View>
                     <Portal>
                         <Dialog visible={confirmationMessage} onDismiss={() => this.hideDialog()}>
@@ -310,77 +384,120 @@ class NXStaticFire extends Bluetooth {
                                 hide={() => this.hideDialog()}
                             />
                         </Dialog>
+
                         <Dialog visible={rebootConfirmationMessage}
                                 onDismiss={() => this.hideRebootConfirmationDialog()}>
                             <ModalConfirmation
                                 t={t}
                                 title={t("Reboot system")}
-                                content={t("Be careful!")}
+                                content={t("Reboot system?")}
                                 style={style}
                                 confirm={() => this.confirmReboot()}
                                 hide={() => this.hideRebootConfirmationDialog()}
                             />
                         </Dialog>
+
+                        <Dialog visible={confirmationAbortMessage}
+                                onDismiss={() => this.hideAbortConfirmationDialog()}>
+                            <ModalConfirmation
+                                t={t}
+                                title={t("ABORT")}
+                                content={t("Abort static fire test?")}
+                                style={style}
+                                confirm={() => this.confirmAbort()}
+                                hide={() => this.hideAbortConfirmationDialog()}
+                            />
+                        </Dialog>
                     </Portal>
                     <Button
                         disabled={!connected}
-                        style={connected ? style.buttonConnected : style.buttonDisconnected}
+                        style={this.buttonStartTestStyle()}
                         icon="fire" mode="contained" onPress={() => this.showConfirmationDialog()}>
-                        {stateNumber === 5 ? t("Running Test") : t("Start Test")}
+                        {this.buttonFireStaticMessages(t)}
                     </Button>
-                    <Divider/>
+                </View>
+                <View>
                     <Button
                         disabled={!connected && stateNumber !== 3}
                         icon="weight" mode="contained" onPress={() => this.getCellValue()}>
                         {t("Cell Value")}
                     </Button>
-                    <Text>{t("Current Cell Value")}: {cellValue}</Text>
+                    <Subheading>{t("Current Cell Value")}: {cellValue}</Subheading>
                 </View>
-                <View>
-                    <Text>{t("Test Fire")}</Text>
-                    <Text>{t("Max Thrust")}: {maxThrust * 0.0098} N / {maxThrust * 0.001} KG</Text>
-                    <LineChart
-                        data={{
-                            labels: thrustTime,
-                            datasets: [
-                                {
-                                    data: thrustData
-                                }
-                            ]
-                        }}
-                        width={Dimensions.get("window").width - 20} // from react-native
-                        height={220}
-                        yAxisLabel={""}
-                        yAxisSuffix={"G"}
-                        chartConfig={{
-                            backgroundColor: "#e26a00",
-                            backgroundGradientFrom: "#e26a00",
-                            backgroundGradientTo: "#ffa726",
-                            decimalPlaces: 2, // optional, defaults to 2dp
-                            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                            labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-                            style: {
-                                borderRadius: 16
-                            },
-                            propsForDots: {
-                                r: "6",
-                                strokeWidth: "2",
-                                stroke: "#ffa726"
-                            },
-                            propsForLabels: {
-                                fontSize: 7
-                            }
-                        }}
-                        bezier
-                        style={{
-                            marginVertical: 8,
-                            borderRadius: 16
-                        }}
+                    <StaticFireChart
+                        maxThrust={maxThrust}
+                        thrustTime={thrustTime}
+                        thrustData={thrustData}
+                        t={t}
                     />
-                </View>
             </View>
         );
     }
+}
+
+const StaticFireChart = (attrs) => {
+    const {maxThrust, thrustTime, thrustData, t} = attrs;
+    let newtonMax = (maxThrust * 0.0098).toFixed(5);
+    let kgMax = (maxThrust * 0.001).toFixed(5);
+    return (
+        <View>
+            <Title>{t("Max Thrust")}: {newtonMax} N / {kgMax} KG</Title>
+            <LineChart
+                data={{
+                    labels: thrustTime,
+                    datasets: [
+                        {
+                            data: thrustData
+                        }
+                    ]
+                }}
+                width={Dimensions.get("window").width - 20} // from react-native
+                height={220}
+                yAxisLabel={""}
+                yAxisSuffix={"G"}
+                chartConfig={{
+                    backgroundColor: "#e26a00",
+                    backgroundGradientFrom: "#e26a00",
+                    backgroundGradientTo: "#ffa726",
+                    decimalPlaces: 2, // optional, defaults to 2dp
+                    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                    style: {
+                        borderRadius: 16
+                    },
+                    propsForDots: {
+                        r: "6",
+                        strokeWidth: "2",
+                        stroke: "#ffa726"
+                    },
+                    propsForLabels: {
+                        fontSize: 7
+                    }
+                }}
+                bezier
+                style={{
+                    marginVertical: 8,
+                    borderRadius: 16
+                }}
+            />
+        </View>
+    );
+}
+
+const StaticFireStates  = (attrs) => {
+    const {t, stateDescription, state, stateNumber} = attrs;
+    return (
+        <View style={style.row}>
+            <Card.Title
+                title={t("State") + ": " + t(state)}
+                subtitle={t(stateDescription)}
+                subtitleNumberOfLines={2}
+                left={(props) => <IconState props={props} stateNumber={stateNumber}/>}
+                right={(props) => <IconButton {...props} icon="folder" onPress={() => {
+                }}/>}
+            />
+        </View>
+    )
 }
 
 const IconState = (attrs) => {
@@ -388,7 +505,7 @@ const IconState = (attrs) => {
     let icon;
     let iconColor;
     switch (stateNumber) {
-        case STATE_GROUND_IDLE:
+        case STATE_READY:
             icon = "check";
             iconColor = style.stateIconReady;
             break;
@@ -421,26 +538,6 @@ const IconState = (attrs) => {
             icon = "exclamation";
             break;
     }
-    /*
-    const STATE_CHECKING_SYSTEMS = 0;
-    const STATE_GROUND_IDLE = 1;
-    const STATE_CHECK_ENGINE_START = 2;
-    const STATE_STARTUP = 3;
-    const STATE_CHECKING_FIRE_TEST_STARTED = 4;
-    const STATE_FIRE_TEST_STARTED = 5;
-    const STATE_FIRE_TEST_ENDED = 6;
-    const STATE_ABORT = 7;
-    const STATE_SHUTDOWN = 8;
-    const STATE_SYSTEM_ERROR = 9;
-    */
-    /*  if (stateNumber == 1) {
-          icon = "check";
-      }
-
-      if (stateNumber == 1) {
-          icon = "fire";
-      }*/
-    console.log(icon);
     return (<>
         <Avatar.Icon style={iconColor} {...props} icon={icon}/>
     </>);
@@ -498,6 +595,10 @@ const style = StyleSheet.create({
     buttonDisconnected: {
         color: "#fff",
         backgroundColor: "#A1378B"
+    },
+    buttonAbort: {
+        color: "#fff",
+        backgroundColor: "#cc0000"
     },
     buttonReboot: {
         color: "#fff",

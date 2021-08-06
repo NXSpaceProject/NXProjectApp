@@ -7,7 +7,7 @@ const NXBar = ({ navigation, previous }) => (
             {previous ? <Appbar.BackAction onPress={navigation.goBack} /> : null}
             <Appbar.Content title="NX Project" subtitle="Rocket"/>
             <Appbar.Action
-                icon="archive"
+                icon="dots-vertical"
                 onPress={() => console.log('Back')}
             />
         </Appbar.Header>

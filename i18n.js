@@ -7,6 +7,7 @@ const resources = {
     en: {
         translation: {
             "Alert": "Alert",
+            "Abort": "Abort",
             "Aborted": "Aborted",
             "Be careful, the static fire test will start": "Be careful, the static fire test will start",
             "Cancel": "Cancel",
@@ -41,6 +42,7 @@ const resources = {
     es: {
         translation: {
             "Alert": "Alerta",
+            "Abort": "Abortar",
             "Aborted": "Abortado",
             "Be careful, the static fire test will start": "Tenga Cuidado, se iniciará la prueba estatica de fuego",
             "Cancel": "Cancelar",
