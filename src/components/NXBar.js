@@ -5,7 +5,7 @@ import { StyleSheet } from 'react-native';
 const NXBar = ({ navigation, previous }) => (
         <Appbar.Header>
             {previous ? <Appbar.BackAction onPress={navigation.goBack} /> : null}
-            <Appbar.Content title="NX Project" subtitle="Rocket"/>
+            <Appbar.Content title="NX Project" subtitle="Static Fire"/>
             <Appbar.Action
                 icon="dots-vertical"
                 onPress={() => console.log('Back')}

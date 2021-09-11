@@ -16,7 +16,10 @@ const resources = {
             "Confirm": "Confirm",
             "Connect by bluetooth": "Connect by bluetooth",
             "Connected": "Connected",
+            "Current load cell value": "Current load cell value",
             "Disconnected": "Disconnected",
+            "Load cell value": "Load cell value",
+            "Max Thrust": "Max Thrust",
             "Recorded flights": "Recorded flights",
             "Running Test": "Running Test",
             "Reboot": "Reboot",
@@ -29,14 +32,16 @@ const resources = {
             "Ready": "Ready",
             "Shutdown": "Shutdown",
             "System error": "System error",
+            "SD Not writable": "SD Not writable",
             //State Descriptions
             "DESCRIPTION_DISCONNECTED": "The rocket is ready to begin the launch sequence",
             "DESCRIPTION_READY": "The rocket is ready to begin the launch sequence",
             "DESCRIPTION_CHECKING_FIRE_TEST_STARTED": "DESCRIPTION_CHECKING_FIRE_TEST_STARTED",
             "DESCRIPTION_TEST_FIRE_ENDED": "DESCRIPTION_TEST_FIRE_ENDED",
-            "DESCRIPTION_INCORRECT_CELL_VALUE": "El valor de la celda de carga está fuera de los parametros normales, verifique las conexiones",
-            "DESCRIPTION_SHUTDOWN": "El sistema se encuentra apagado",
-            "DESCRIPTION_SYSTEM_ERROR": "¡Ha ocurrido un error en el sistema! Revise las conexiones y vuelva a intentarlo nuevamente",
+            "DESCRIPTION_INCORRECT_CELL_VALUE": "The load cell value is outside normal parameters, check connections.",
+            "DESCRIPTION_SHUTDOWN": "The system is shutdown",
+            "DESCRIPTION_SYSTEM_ERROR": "A system error has occurred! Please check the connections and try again",
+            "SYSTEM_ERROR_SD_NOT_WRITABLE": "ERROR: Cannot write to SD card",
         }
     },
     es: {
@@ -51,7 +56,10 @@ const resources = {
             "Confirm": "Confirmar",
             "Connect by bluetooth": "Conectar por bluetooth",
             "Connected": "Conectado",
+            "Current load cell value": "Valor actual de la celda de carga",
             "Disconnected": "Desconectado",
+            "Load cell value": "Valor de la celda de carga",
+            "Max Thrust": "Máximo Empuje",
             "Recorded flights": "Vuelos registrados",
             "Running Test": "Corriendo la prueba",
             "Reboot": "Reiniciar",
@@ -64,6 +72,7 @@ const resources = {
             "Incorrect cell value": "Error en la celda de carga",
             "Shutdown": "Sistema apagado",
             "System error": "Error del sistema",
+            "SD Not writable": "Error en SD",
             //State Descriptions
             "DESCRIPTION_DISCONNECTED": "Para comenzar, apriete el botón",
             "DESCRIPTION_READY": "¡Todo en orden! El cohete está listo para comenzar la secuencia de lanzamiento",
@@ -72,6 +81,7 @@ const resources = {
             "DESCRIPTION_TEST_FIRE_ENDED": "DESCRIPTION_TEST_FIRE_ENDED",
             "DESCRIPTION_SHUTDOWN": "El sistema se encuentra apagado",
             "DESCRIPTION_SYSTEM_ERROR": "¡Ha ocurrido un error en el sistema! Revise las conexiones y vuelva a intentarlo nuevamente",
+            "SYSTEM_ERROR_SD_NOT_WRITABLE": "ERROR: No es posible escribir en la tarjeta SD",
         }
     }
 };

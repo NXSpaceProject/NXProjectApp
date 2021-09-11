@@ -5,7 +5,7 @@ import NXStaticFire from '../NXStaticFire';
 
 //const MusicRoute = () => <Text>Music</Text>;
 
-const AlbumsRoute = () => <Text>Albums</Text>;
+const AlbumsRoute = () => <Text></Text>;
 
 const NXBottomNavigation = (props) => {
     const [index, setIndex] = React.useState(0);

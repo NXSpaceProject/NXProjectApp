@@ -24,6 +24,7 @@ const STATE_FIRE_TEST_ENDED = 6;
 const STATE_ABORT = 7;
 const STATE_CELL_VALUE_INCORRECT = 8;
 const STATE_SYSTEM_ERROR = 9;
+const SYSTEM_ERROR_SD_NOT_WRITABLE = 10;
 const CELL_VALUE_WAITING_TIME = 1000;
 
 class NXStaticFire extends Bluetooth {
@@ -38,7 +39,8 @@ class NXStaticFire extends Bluetooth {
         "Test fired ended", //6
         "Aborted",          //7
         "Incorrect cell value",         //8
-        "System error"      //9
+        "System error",      //9
+        "SD Not writable"      //10
     ];
 
     statesDescription = [
@@ -51,7 +53,8 @@ class NXStaticFire extends Bluetooth {
         "DESCRIPTION_TEST_FIRE_ENDED",  //6
         "Aborted",                      //7
         "DESCRIPTION_INCORRECT_CELL_VALUE",         //8
-        "DESCRIPTION_SYSTEM_ERROR"      //9
+        "DESCRIPTION_SYSTEM_ERROR" ,     //9
+        "SYSTEM_ERROR_SD_NOT_WRITABLE" //10
     ];
 
     MINIMUM_CELL_SAFETY_VALUES = -50;
@@ -104,9 +107,10 @@ class NXStaticFire extends Bluetooth {
      * @param decodedValue
      */
     decodeProtocol(decodedValue) {
+        console.log("DECODED VALUE:", decodedValue);
         if (decodedValue.startsWith("NX+STATE=")) {
             const valuePos = decodedValue.indexOf("=") + 1;
-            const stateNumber = this.getNXValue(decodedValue.substring(valuePos, valuePos+1));
+            const stateNumber = this.getNXValue(decodedValue.substring(valuePos, valuePos+2));
             this.setState({
                 state: this.states[stateNumber],
                 stateDescription: this.statesDescription[stateNumber],
@@ -116,8 +120,9 @@ class NXStaticFire extends Bluetooth {
         if (decodedValue.startsWith("N+W=")) {
             const thrust = this.getNXValue(decodedValue);
             const thrustArray = thrust.split(",");
+            let currentThrust = parseFloat(thrustArray[1]);
 
-            console.log(thrustArray[1] > this.state.maxThrust ? thrustArray[1] : this.state.maxThrust)
+            console.log(currentThrust > this.state.maxThrust ?currentThrust : this.state.maxThrust);
 
             //  if (thrustArray[1] - this.state.thrustData[this.state.thrustData.length-1] >= 1) {
             if (this.state.thrustData.length > 15) {
@@ -125,9 +130,9 @@ class NXStaticFire extends Bluetooth {
                 this.state.thrustData.shift();
             }
             this.setState({
-                maxThrust: thrustArray[1] > this.state.maxThrust ? thrustArray[1] : this.state.maxThrust,
+                maxThrust: currentThrust > this.state.maxThrust ? currentThrust : this.state.maxThrust,
                 thrustTime: [...this.state.thrustTime, thrustArray[0]],
-                thrustData: [...this.state.thrustData, thrustArray[1]]
+                thrustData: [...this.state.thrustData, currentThrust]
             });
             // }
         }
@@ -275,7 +280,7 @@ class NXStaticFire extends Bluetooth {
      */
     getCellValue() {
         this.wwor.writeWithoutResponse(base64.encode("NX+CEL\n")).then((response) => {
-            console.log("NX+CELL");
+            console.log("NX+CEL");
         });
     }
 
@@ -420,9 +425,9 @@ class NXStaticFire extends Bluetooth {
                     <Button
                         disabled={!connected && stateNumber !== 3}
                         icon="weight" mode="contained" onPress={() => this.getCellValue()}>
-                        {t("Cell Value")}
+                        {t("Load cell value")}
                     </Button>
-                    <Subheading>{t("Current Cell Value")}: {cellValue}</Subheading>
+                    <Subheading>{t("Current load cell value")}: {cellValue} gr</Subheading>
                 </View>
                     <StaticFireChart
                         maxThrust={maxThrust}
@@ -437,8 +442,8 @@ class NXStaticFire extends Bluetooth {
 
 const StaticFireChart = (attrs) => {
     const {maxThrust, thrustTime, thrustData, t} = attrs;
-    let newtonMax = (maxThrust * 0.0098).toFixed(5);
-    let kgMax = (maxThrust * 0.001).toFixed(5);
+    let kgMax = (maxThrust / 1000).toFixed(5);
+    let newtonMax = (kgMax * 9.80665).toFixed(5);
     return (
         <View>
             <Title>{t("Max Thrust")}: {newtonMax} N / {kgMax} KG</Title>
@@ -534,6 +539,9 @@ const IconState = (attrs) => {
             iconColor = style.stateIconError;
             break;
         case STATE_SYSTEM_ERROR:
+            iconColor = style.stateIconError;
+            icon = "exclamation";
+        case SYSTEM_ERROR_SD_NOT_WRITABLE:
             iconColor = style.stateIconError;
             icon = "exclamation";
             break;
