@@ -4,13 +4,14 @@ import {
     Button, Avatar, Card, IconButton, Title, Subheading,
     Paragraph, Badge, Dialog, Portal, Divider
 } from 'react-native-paper';
-import {Dimensions, View, Text, StyleSheet} from 'react-native';
+import {Dimensions, View, Text, StyleSheet, StatusBar, SafeAreaView, ScrollView} from 'react-native';
 import Bluetooth from "./Bluetooth";
 import {withTranslation} from "react-i18next";
 import base64 from "react-native-base64";
 import {
     LineChart
 } from "react-native-chart-kit";
+import SplashScreen from 'react-native-splash-screen'
 
 import NXStaticFireSettings from './components/NXStaticFireSettings';
 
@@ -90,7 +91,11 @@ class NXStaticFire extends Bluetooth {
             fireLightStartThreshold: 0
         };
     }
-
+    componentDidMount() {
+        // do stuff while splash screen is shown
+        // After having done stuff (such as async tasks) hide the splash screen
+        SplashScreen.hide();
+    }
     /**
      * Get Device State
      * @returns {Promise<void>}
@@ -121,7 +126,6 @@ class NXStaticFire extends Bluetooth {
             const thrust = this.getNXValue(decodedValue);
             const thrustArray = thrust.split(",");
             let currentThrust = parseFloat(thrustArray[1]);
-
             console.log(currentThrust > this.state.maxThrust ?currentThrust : this.state.maxThrust);
 
             //  if (thrustArray[1] - this.state.thrustData[this.state.thrustData.length-1] >= 1) {
@@ -132,7 +136,8 @@ class NXStaticFire extends Bluetooth {
             this.setState({
                 maxThrust: currentThrust > this.state.maxThrust ? currentThrust : this.state.maxThrust,
                 thrustTime: [...this.state.thrustTime, thrustArray[0]],
-                thrustData: [...this.state.thrustData, currentThrust]
+                thrustData: [...this.state.thrustData, currentThrust],
+                cellValue: currentThrust
             });
             // }
         }
@@ -311,7 +316,7 @@ class NXStaticFire extends Bluetooth {
     buttonStartTestStyle() {
         if (this.isConnectedAndTestRunning() || this.state.stateNumber ===  STATE_CHECKING_FIRE_TEST_STARTED) {
             return style.buttonAbort;
-          // return style.buttonConnected : style.buttonDisconnected
+            // return style.buttonConnected : style.buttonDisconnected
         } else if (this.state.connected === true) {
             return style.buttonConnected;
         }
@@ -321,16 +326,16 @@ class NXStaticFire extends Bluetooth {
             return t("ABORT");
         }
         return t("Start Test");
-     //   stateNumber === STATE_FIRE_TEST_STARTED ? t("ABORT") : t("Start Test")
+        //   stateNumber === STATE_FIRE_TEST_STARTED ? t("ABORT") : t("Start Test")
     }
 
 
-             /*   <View>
-                    <NXStaticFireSettings
-                        updateSetting={this.updateSetting}
-                        saveSettings={this.saveSettings}
-                    />
-                </View>*/
+    /*   <View>
+           <NXStaticFireSettings
+               updateSetting={this.updateSetting}
+               saveSettings={this.saveSettings}
+           />
+       </View>*/
 
 
     /**
@@ -356,94 +361,97 @@ class NXStaticFire extends Bluetooth {
         const {t} = this.props;
 
         return (
-            <View style={style.container}>
-                <View style={style.row}>
-                    <Button
-                        style={connected ? style.buttonConnected : style.buttonDisconnected}
-                        icon="bluetooth" mode="contained" onPress={() => this.toggleBluetooth()}>
-                        {connected ? t("Connected") : t("Connect by bluetooth")}
-                    </Button>
-                </View>
-                <View style={style.row}>
-                    <Button
-                        disabled={!connected}
-                        style={connected ? style.buttonReboot : style.buttonDisconnected}
-                        icon="power-off" mode="contained" onPress={() => this.showRebootConfirmationDialog()}>
-                        {connected ? t("Reboot") : t("Disconnected")}
-                    </Button>
-                </View>
-                <StaticFireStates
-                    state={state}
-                    stateNumber={stateNumber}
-                    stateDescription={stateDescription}
-                    t={t}/>
-                <View>
-                    <Portal>
-                        <Dialog visible={confirmationMessage} onDismiss={() => this.hideDialog()}>
-                            <ModalConfirmation
-                                t={t}
-                                title={t("Alert")}
-                                content={t("Be careful, the static fire test will start")}
-                                style={style}
-                                confirm={() => this.confirm()}
-                                hide={() => this.hideDialog()}
-                            />
-                        </Dialog>
+            <SafeAreaView>
+                <ScrollView contentInsetAdjustmentBehavior="automatic">
+                    <View style={style.container}>
+                        <View style={style.row}>
+                            <Button
+                                style={connected ? style.buttonConnected : style.buttonDisconnected}
+                                icon="bluetooth" mode="contained" onPress={() => this.toggleBluetooth()}>
+                                {connected ? t("Connected") : t("Connect by bluetooth")}
+                            </Button>
+                        </View>
+                        <View style={style.row}>
+                            <Button
+                                disabled={!connected}
+                                style={connected ? style.buttonReboot : style.buttonDisconnected}
+                                icon="power-off" mode="contained" onPress={() => this.showRebootConfirmationDialog()}>
+                                {connected ? t("Reboot") : t("Disconnected")}
+                            </Button>
+                        </View>
+                        <StaticFireStates
+                            state={state}
+                            stateNumber={stateNumber}
+                            stateDescription={stateDescription}
+                            t={t}/>
+                        <View style={style.row}>
+                            <Portal>
+                                <Dialog visible={confirmationMessage} onDismiss={() => this.hideDialog()}>
+                                    <ModalConfirmation
+                                        t={t}
+                                        title={t("Alert")}
+                                        content={t("Be careful, the static fire test will start")}
+                                        style={style}
+                                        confirm={() => this.confirm()}
+                                        hide={() => this.hideDialog()}
+                                    />
+                                </Dialog>
 
-                        <Dialog visible={rebootConfirmationMessage}
-                                onDismiss={() => this.hideRebootConfirmationDialog()}>
-                            <ModalConfirmation
-                                t={t}
-                                title={t("Reboot system")}
-                                content={t("Reboot system?")}
-                                style={style}
-                                confirm={() => this.confirmReboot()}
-                                hide={() => this.hideRebootConfirmationDialog()}
-                            />
-                        </Dialog>
+                                <Dialog visible={rebootConfirmationMessage}
+                                        onDismiss={() => this.hideRebootConfirmationDialog()}>
+                                    <ModalConfirmation
+                                        t={t}
+                                        title={t("Reboot system")}
+                                        content={t("Reboot system?")}
+                                        style={style}
+                                        confirm={() => this.confirmReboot()}
+                                        hide={() => this.hideRebootConfirmationDialog()}
+                                    />
+                                </Dialog>
 
-                        <Dialog visible={confirmationAbortMessage}
-                                onDismiss={() => this.hideAbortConfirmationDialog()}>
-                            <ModalConfirmation
-                                t={t}
-                                title={t("ABORT")}
-                                content={t("Abort static fire test?")}
-                                style={style}
-                                confirm={() => this.confirmAbort()}
-                                hide={() => this.hideAbortConfirmationDialog()}
-                            />
-                        </Dialog>
-                    </Portal>
-                    <Button
-                        disabled={!connected}
-                        style={this.buttonStartTestStyle()}
-                        icon="fire" mode="contained" onPress={() => this.showConfirmationDialog()}>
-                        {this.buttonFireStaticMessages(t)}
-                    </Button>
-                </View>
-                <View>
-                    <Button
-                        disabled={!connected && stateNumber !== 3}
-                        icon="weight" mode="contained" onPress={() => this.getCellValue()}>
-                        {t("Load cell value")}
-                    </Button>
-                    <Subheading>{t("Current load cell value")}: {cellValue} gr</Subheading>
-                </View>
-                    <StaticFireChart
-                        maxThrust={maxThrust}
-                        thrustTime={thrustTime}
-                        thrustData={thrustData}
-                        t={t}
-                    />
-            </View>
+                                <Dialog visible={confirmationAbortMessage}
+                                        onDismiss={() => this.hideAbortConfirmationDialog()}>
+                                    <ModalConfirmation
+                                        t={t}
+                                        title={t("Abort")}
+                                        content={t("Abort static fire test?")}
+                                        style={style}
+                                        confirm={() => this.confirmAbort()}
+                                        hide={() => this.hideAbortConfirmationDialog()}
+                                    />
+                                </Dialog>
+                            </Portal>
+                            <Button
+                                disabled={!connected}
+                                style={this.buttonStartTestStyle()}
+                                icon="fire" mode="contained" onPress={() => this.showConfirmationDialog()}>
+                                {this.buttonFireStaticMessages(t)}
+                            </Button>
+                        </View>
+                        <View style={style.row}>
+                            <Button
+                                disabled={!connected && stateNumber !== 3}
+                                icon="weight" mode="contained" onPress={() => this.getCellValue()}>
+                                {t("Load cell value") + ": " + cellValue + "gr"}
+                            </Button>
+                        </View>
+                        <StaticFireChart
+                            maxThrust={maxThrust}
+                            thrustTime={thrustTime}
+                            thrustData={thrustData}
+                            t={t}
+                        />
+                    </View>
+                </ScrollView>
+            </SafeAreaView>
         );
     }
 }
 
 const StaticFireChart = (attrs) => {
     const {maxThrust, thrustTime, thrustData, t} = attrs;
-    let kgMax = (maxThrust / 1000).toFixed(5);
-    let newtonMax = (kgMax * 9.80665).toFixed(5);
+    let kgMax = (maxThrust / 1000).toFixed(4);
+    let newtonMax = (kgMax * 9.80665).toFixed(4);
     return (
         <View>
             <Title>{t("Max Thrust")}: {newtonMax} N / {kgMax} KG</Title>
@@ -461,9 +469,9 @@ const StaticFireChart = (attrs) => {
                 yAxisLabel={""}
                 yAxisSuffix={"G"}
                 chartConfig={{
-                    backgroundColor: "#e26a00",
-                    backgroundGradientFrom: "#e26a00",
-                    backgroundGradientTo: "#ffa726",
+                    backgroundColor: "#ab0000",
+                    backgroundGradientFrom: "#ab0000",
+                    backgroundGradientTo: "#EB4D31",
                     decimalPlaces: 2, // optional, defaults to 2dp
                     color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
                     labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
@@ -473,7 +481,7 @@ const StaticFireChart = (attrs) => {
                     propsForDots: {
                         r: "6",
                         strokeWidth: "2",
-                        stroke: "#ffa726"
+                        stroke: "#EB4D31"
                     },
                     propsForLabels: {
                         fontSize: 7
@@ -498,8 +506,7 @@ const StaticFireStates  = (attrs) => {
                 subtitle={t(stateDescription)}
                 subtitleNumberOfLines={2}
                 left={(props) => <IconState props={props} stateNumber={stateNumber}/>}
-                right={(props) => <IconButton {...props} icon="folder" onPress={() => {
-                }}/>}
+                right={(props) => <></>}
             />
         </View>
     )
@@ -541,6 +548,7 @@ const IconState = (attrs) => {
         case STATE_SYSTEM_ERROR:
             iconColor = style.stateIconError;
             icon = "exclamation";
+            break;
         case SYSTEM_ERROR_SD_NOT_WRITABLE:
             iconColor = style.stateIconError;
             icon = "exclamation";
@@ -602,7 +610,7 @@ const style = StyleSheet.create({
     },
     buttonDisconnected: {
         color: "#fff",
-        backgroundColor: "#A1378B"
+        /*backgroundColor: "#A1378B"*/
     },
     buttonAbort: {
         color: "#fff",

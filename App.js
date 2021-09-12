@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import {Button, Text, View, StyleSheet} from 'react-native';
+import SplashScreen from 'react-native-splash-screen'
 import {PermissionsAndroid} from 'react-native';
 import {BleManager} from 'react-native-ble-plx';
 //import { Buffer } from 'buffer';
