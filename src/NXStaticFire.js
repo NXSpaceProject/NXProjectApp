@@ -66,8 +66,11 @@ class NXStaticFire extends Bluetooth {
 
     COMMAND_RECEIVE_SET_TARE = "NX+TAR";
 
-    COMMAND_RECEIVE_SET_HX711_RATE = "NXRAT="
+    COMMAND_CHANGE_HX711_RATE = "NX+SR=";
 
+    COMMAND_RECEIVE_CURRENT_HX711_RATE = "NX+RAT=";
+
+    COMMAND_REQUEST_HX711_RATE  = "NX+RRT";
     /**
      * constructor
      */
@@ -92,7 +95,8 @@ class NXStaticFire extends Bluetooth {
             cellValue: "0.00",
             rebootConfirmationMessage: false,
             confirmationAbortMessage: false,
-            fireLightStartThreshold: 0
+            fireLightStartThreshold: 0,
+            hx711Rate: true
         };
     }
 
@@ -111,7 +115,9 @@ class NXStaticFire extends Bluetooth {
     async getDeviceState() {
         //  const array = [0x73];
         //    const openValueBase64 = new Buffer(array).toString('base64');
-        await this.wwor.writeWithoutResponse(base64.encode("NX+STATE"));
+        await this.wwor.writeWithoutResponse(base64.encode("NX+STATE" + "\n"));
+        //DISABLE TO TEST
+      //  await this.wwor.writeWithoutResponse(base64.encode(this.COMMAND_REQUEST_HX711_RATE+ "\n"));
         //   await this.wwor.writeWithoutResponse(base64.encode("NX+LOGS"));
     }
 
@@ -165,6 +171,18 @@ class NXStaticFire extends Bluetooth {
                 cellValue: this.getNXValue(decodedValue)
             });
         }
+
+        if (decodedValue.startsWith(this.COMMAND_RECEIVE_CURRENT_HX711_RATE)) {
+            const valuePos = decodedValue.indexOf("=") + 1;
+            const rateValue = this.getNXValue(decodedValue.substring(valuePos, valuePos+2));
+
+            this.setState({
+                hx711Rate: rateValue === '1' ? true : false,
+            })
+            console.log('GER RATED' + Boolean(this.getNXValue(decodedValue.substring(valuePos, valuePos+2))))
+        }
+
+
     }
 
     /**
@@ -307,10 +325,14 @@ class NXStaticFire extends Bluetooth {
         });
     }
 
-    changeCellRate() {
-        this.wwor.writeWithoutResponse(base64.encode("NXRAT=\n")).then((response) => {
-            console.log("NXRAT");
+    changeCellRate(hx711Rate) {
+        const rateNumber = hx711Rate ? "1" : "0";
+        this.wwor.writeWithoutResponse(base64.encode(this.COMMAND_CHANGE_HX711_RATE + rateNumber  + "\n")).then((response) => {
+            console.log(this.COMMAND_CHANGE_HX711_RATE + rateNumber);
         });
+        this.setState({
+            hx711Rate: hx711Rate
+        })
     }
 
     isConnectedAndSystemReady() {
@@ -380,6 +402,7 @@ class NXStaticFire extends Bluetooth {
             confirmationAbortMessage,
             maxThrust,
             cellValue,
+            hx711Rate,
             fireLightStartThreshold
         } = this.state;
         const {t} = this.props;
@@ -476,9 +499,8 @@ class NXStaticFire extends Bluetooth {
 
                         <View style={style.row}>
                             <Text>{t("Change Rate value")}</Text>
-                            <Switch value={true} onValueChange={() => this.changeCellRate()} />
+                            <Switch value={hx711Rate} onValueChange={() => this.changeCellRate(!hx711Rate)} />
                         </View>
-
                     </View>
                 </ScrollView>
             </SafeAreaView>
