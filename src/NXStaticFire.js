@@ -2,7 +2,7 @@
 import React, {Component} from 'react';
 import {
     Button, Avatar, Card, IconButton, Title, Subheading,
-    Paragraph, Badge, Dialog, Portal, Divider
+    Paragraph, Badge, Dialog, Portal, Divider, Switch
 } from 'react-native-paper';
 import {Dimensions, View, Text, StyleSheet, StatusBar, SafeAreaView, ScrollView} from 'react-native';
 import Bluetooth from "./Bluetooth";
@@ -64,6 +64,10 @@ class NXStaticFire extends Bluetooth {
 
     COMMAND_CHANGE_STATE = "NX+SS=";
 
+    COMMAND_RECEIVE_SET_TARE = "NX+TAR";
+
+    COMMAND_RECEIVE_SET_HX711_RATE = "NXRAT="
+
     /**
      * constructor
      */
@@ -85,12 +89,16 @@ class NXStaticFire extends Bluetooth {
             thrustTime: [0],
             confirmationMessage: false,
             maxThrust: 0,
-            cellValue: 0,
+            cellValue: "0.00",
             rebootConfirmationMessage: false,
             confirmationAbortMessage: false,
             fireLightStartThreshold: 0
         };
     }
+
+    /**
+     * componentDidMount
+     */
     componentDidMount() {
         // do stuff while splash screen is shown
         // After having done stuff (such as async tasks) hide the splash screen
@@ -214,8 +222,8 @@ class NXStaticFire extends Bluetooth {
      */
     confirm() {
         let sendState = (this.state.stateNumber === STATE_FIRE_TEST_STARTED) ? STATE_ABORT : STATE_STARTUP;
-        this.wwor.writeWithoutResponse(base64.encode("NX+SS=" + sendState + "\n")).then((response) => {
-            console.log("NX+SS=" + sendState)
+        this.wwor.writeWithoutResponse(base64.encode(this.COMMAND_CHANGE_STATE + sendState + "\n")).then((response) => {
+            console.log(this.COMMAND_CHANGE_STATE + sendState)
             this.setState({confirmationMessage: false});
         });
     }
@@ -243,7 +251,7 @@ class NXStaticFire extends Bluetooth {
      * Confirm Abort
      */
     confirmAbort() {
-        this.wwor.writeWithoutResponse(base64.encode("NX+SS=" + STATE_ABORT + "\n")).then((response) => {
+        this.wwor.writeWithoutResponse(base64.encode(this.COMMAND_CHANGE_STATE + STATE_ABORT + "\n")).then((response) => {
             this.setState({confirmationAbortMessage: false});
         });
     }
@@ -271,13 +279,14 @@ class NXStaticFire extends Bluetooth {
         })
     }
 
+
     /**
      * Change NX system state
      * @param sendState
      * @returns {Promise<Characteristic>}
      */
     sendNXState(sendState) {
-        return this.wwor.writeWithoutResponse(base64.encode("NX+SS=" + sendState + "\n"));
+        return this.wwor.writeWithoutResponse(base64.encode(this.COMMAND_CHANGE_STATE + sendState + "\n"));
     }
 
     /**
@@ -286,6 +295,21 @@ class NXStaticFire extends Bluetooth {
     getCellValue() {
         this.wwor.writeWithoutResponse(base64.encode("NX+CEL\n")).then((response) => {
             console.log("NX+CEL");
+        });
+    }
+
+    /**
+     * Set Tare Weight
+     */
+    setTareWeight() {
+        this.wwor.writeWithoutResponse(base64.encode("NX+TAR\n")).then((response) => {
+            console.log("NX+TAR");
+        });
+    }
+
+    changeCellRate() {
+        this.wwor.writeWithoutResponse(base64.encode("NXRAT=\n")).then((response) => {
+            console.log("NXRAT");
         });
     }
 
@@ -428,12 +452,20 @@ class NXStaticFire extends Bluetooth {
                                 {this.buttonFireStaticMessages(t)}
                             </Button>
                         </View>
-                        <View style={style.row}>
+                        <View style={{flex: 1}}>
+                        <View style={{ flexDirection: "row"}}>
                             <Button
+                                style={style.weightButton}
                                 disabled={!connected && stateNumber !== 3}
                                 icon="weight" mode="contained" onPress={() => this.getCellValue()}>
                                 {t("Load cell value") + ": " + cellValue + "gr"}
                             </Button>
+                            <Button
+                                disabled={!connected && stateNumber !== 3}
+                                mode="contained" onPress={() => this.setTareWeight()}>
+                                {t("Tare weight")}
+                            </Button>
+                        </View>
                         </View>
                         <StaticFireChart
                             maxThrust={maxThrust}
@@ -441,6 +473,12 @@ class NXStaticFire extends Bluetooth {
                             thrustData={thrustData}
                             t={t}
                         />
+
+                        <View style={style.row}>
+                            <Text>{t("Change Rate value")}</Text>
+                            <Switch value={true} onValueChange={() => this.changeCellRate()} />
+                        </View>
+
                     </View>
                 </ScrollView>
             </SafeAreaView>
@@ -619,6 +657,9 @@ const style = StyleSheet.create({
     buttonReboot: {
         color: "#fff",
         backgroundColor: "#ffa500"
+    },
+    weightButton: {
+        marginRight: 5
     }
 });
 export default withTranslation()(NXStaticFire);

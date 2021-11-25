@@ -26,6 +26,7 @@ const resources = {
             "State": "State",
             "Static Test Fire": "Static Test Fire",
             "Start Test": "Start Test",
+            "Tare weight": "Tare weight",
             //States
             "Checking systems": "Checking systems",
             "Incorrect cell value": "Incorrect cell value",
@@ -67,6 +68,7 @@ const resources = {
             "State": "Estado",
             "Static Test Fire": "Static Test Fire",
             "Start Test": "Comenzar la prueba",
+            "Tare weight": "Tara",
             //States
             "Checking systems": "Chequeando sistemas",
             "Ready": "Listo",
