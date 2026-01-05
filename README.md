@@ -15,7 +15,9 @@ This module allows for the safe execution of static fire tests for solid rocket 
     *   **Confirmation Dialogs:** Requires explicit user confirmation for critical actions like starting the test, aborting, or rebooting the system.
 *   **Emergency Controls:** Instant access to "Abort" commands to stop the test sequence and "Reboot" controls to reset the hardware.
 *   **Settings:** Configurable parameters such as light start thresholds.
+
 ![Screen](https://github.com/NXSpaceProject/NXProjectApp/blob/master/screens/screen_1.jpg)
+
 ### 2. Flight Computer Monitoring
 A dedicated dashboard for monitoring the rocket during flight operations.
 *   **Flight State Tracking:** Visualizes the current state of the rocket communication and flight phase (e.g., Checking Systems, Ready, Liftoff, Ascending, Descending, Landed).
